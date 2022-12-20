@@ -1,3 +1,6 @@
+import logging
+import traceback
+
 from django.apps import apps
 from django.conf import settings
 from django.conf.urls import include
@@ -23,6 +26,8 @@ for plugin_path in settings.PLUGINS:
     app = apps.get_app_config(plugin_name)
     base_url = getattr(app, 'base_url') or app.label
 
+    logger = logging.getLogger(__name__)
+
     # Check if the plugin specifies any base URLs
     try:
         urlpatterns = import_string(f"{plugin_path}.urls.urlpatterns")
@@ -30,6 +35,8 @@ for plugin_path in settings.PLUGINS:
             path(f"{base_url}/", include((urlpatterns, app.label)))
         )
     except ImportError:
+        logger.info(f"Plugin base URL patterns could not be loaded: {plugin_path}.urls.urlpatterns")
+        logger.debug(traceback.format_exc())
         pass
 
     # Check if the plugin specifies any API URLs
@@ -39,4 +46,6 @@ for plugin_path in settings.PLUGINS:
             path(f"{base_url}/", include((urlpatterns, f"{app.label}-api")))
         )
     except ImportError:
+        logger.info(f"Plugin API URL patterns could not be loaded: {plugin_path}.api.urls.urlpatterns")
+        logger.debug(traceback.format_exc())
         pass
